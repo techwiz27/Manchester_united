@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kayima Manifesto — Glory, Glory Man United</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --mu-red: #DA291C; --mu-gold: #FBE122; }
+        body { background: #050505; color: #f5f5f5; font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Bebas Neue', sans-serif; }
+        .font-led { family: 'Orbitron', sans-serif; }
+
+        .player-card img {
+            transition: all 0.5s ease;
+        }
+        .player-card:hover img {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+<header class="min-h-screen flex flex-col items-center justify-center text-center bg-gradient-to-br from-black via-red-950 to-black p-6">
+    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/7/7a/Manchester_United_FC_crest.svg/800px-Manchester_United_FC_crest.svg.png" 
+         alt="MUFC Crest" class="w-40 mb-8" onerror="this.style.display='none'">
+    
+    <h1 class="font-display text-6xl md:text-8xl text-[#DA291C]">THE KAYIMA MANIFESTO</h1>
+    <p class="text-3xl mt-4">Glory, Glory Man United</p>
+</header>
+
+<section class="py-20 bg-black">
+    <div class="max-w-6xl mx-auto px-6">
+        <h2 class="font-display text-5xl text-center mb-12">Meet The Squad</h2>
+        <div id="player-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </div>
+</section>
+
+<script>
+// More reliable images + excellent fallbacks
+const PLAYERS = [
+    { 
+        name: "Bruno Fernandes", 
+        number: 8, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/0/0f/Bruno_Fernandes_2022.jpg" 
+    },
+    { 
+        name: "Amad Diallo", 
+        number: 16, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Amad_Diallo_2023.jpg" 
+    },
+    { 
+        name: "Kobbie Mainoo", 
+        number: 37, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/7/7f/Kobbie_Mainoo_2024.jpg" 
+    },
+    { 
+        name: "Rasmus Højlund", 
+        number: 9, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Rasmus_H%C3%B8jlund_2024.jpg" 
+    },
+    { 
+        name: "Alejandro Garnacho", 
+        number: 17, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/0/0d/Alejandro_Garnacho_2024.jpg" 
+    },
+    { 
+        name: "Bryan Mbeumo", 
+        number: 19, 
+        photo: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Bryan_Mbeumo_2024.jpg" 
+    }
+];
+
+const grid = document.getElementById('player-grid');
+
+PLAYERS.forEach(p => {
+    const card = document.createElement('div');
+    card.className = "player-card bg-zinc-900 rounded-3xl overflow-hidden border border-white/10";
+    
+    card.innerHTML = `
+        <div class="relative h-80 bg-black">
+            <img src="${p.photo}" 
+                 alt="${p.name}"
+                 class="w-full h-full object-cover"
+                 onerror="this.outerHTML = '<div class=\\'h-full flex items-center justify-center text-8xl\\'>👕</div>'">
+            
+            <div class="absolute top-4 right-4 bg-black/80 text-[#FBE122] font-led text-6xl px-4 py-2 rounded-2xl">
+                ${p.number}
+            </div>
+            
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 p-6">
+                <p class="font-display text-3xl">${p.name}</p>
+            </div>
+        </div>
+    `;
+    grid.appendChild(card);
+});
+
+// Pledge
+document.addEventListener('submit', (e) => {
+    if (e.target.id === 'petition-form') {
+        e.preventDefault();
+        confetti({ particleCount: 150, spread: 80 });
+        alert("Welcome to the Red Devils family! 👹");
+    }
+});
+</script>
+
+</body>
+</html>

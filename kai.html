@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Kayima Manifesto — Glory, Glory Man United</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Animate.css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+<!-- Canvas Confetti -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.2/confetti.browser.min.js"></script>
+<!-- Fonts: Bebas Neue (stadium display), Inter (body), Orbitron (LED scoreboard) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --mu-red: #DA291C;
+    --mu-red-dark: #A11D12;
+    --mu-black: #050505;
+    --mu-charcoal: #141414;
+    --mu-gold: #FBE122;
+    --mu-white: #F5F5F5;
+    --pitch: #0d2818;
+  }
+
+  * { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--mu-black);
+    color: var(--mu-white);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em; }
+  .font-led { font-family: 'Orbitron', sans-serif; }
+
+  /* ---------- Floodlight hero background ---------- */
+  .floodlight-bg {
+    background:
+      radial-gradient(ellipse 70% 60% at 15% -10%, rgba(251,225,34,0.14), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 85% -10%, rgba(218,41,28,0.35), transparent 60%),
+      radial-gradient(ellipse 100% 100% at 50% 120%, rgba(218,41,28,0.25), transparent 60%),
+      var(--mu-black);
+  }
+  .stadium-lines {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.10;
+    background-image: repeating-linear-gradient(90deg, var(--mu-white) 0 2px, transparent 2px 90px);
+  }
+
+  /* ---------- Neon pulse text ---------- */
+  @keyframes neonPulse {
+    0%, 100% { text-shadow: 0 0 8px rgba(218,41,28,0.9), 0 0 22px rgba(218,41,28,0.6), 0 0 46px rgba(251,225,34,0.35); }
+    50% { text-shadow: 0 0 14px rgba(251,225,34,0.95), 0 0 34px rgba(218,41,28,0.85), 0 0 70px rgba(218,41,28,0.5); }
+  }
+  .neon-text { animation: neonPulse 2.6s ease-in-out infinite; }
+
+  /* ---------- Crest badge (stylised, not the official mark) ---------- */
+  .crest {
+    width: 78px; height: 92px;
+    display: flex; align-items: center; justify-content: center;
+    filter: drop-shadow(0 0 18px rgba(251,225,34,0.45));
+  }
+  .crest img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* ---------- Floating ambient player silhouettes ---------- */
+  @keyframes floatY {
+    0%,100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-18px) rotate(1.5deg); }
+  }
+  .float-slow { animation: floatY 6s ease-in-out infinite; }
+  .float-slower { animation: floatY 8s ease-in-out infinite; animation-delay: -3s; }
+
+  /* ---------- Scroll reveal ---------- */
+  .reveal { opacity: 0; transform: translateY(36px); transition: opacity .8s ease, transform .8s ease; }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
+  .reveal-left { opacity: 0; transform: translateX(-60px); transition: opacity .8s ease, transform .8s ease; }
+  .reveal-left.in-view { opacity: 1; transform: translateX(0); }
+  .reveal-right { opacity: 0; transform: translateX(60px); transition: opacity .8s ease, transform .8s ease; }
+  .reveal-right.in-view { opacity: 1; transform: translateX(0); }
+
+  /* ---------- Player trading cards (FIFA-esque) ---------- */
+  .card-stage { perspective: 1200px; }
+  .player-card {
+    position: relative;
+    background: linear-gradient(160deg, #1c1c1c 0%, #0a0a0a 70%);
+    border: 1px solid rgba(251,225,34,0.25);
+    border-radius: 1.1rem;
+    transform-style: preserve-3d;
+    transition: transform .15s ease, box-shadow .3s ease;
+    overflow: hidden;
+  }
+  .player-card:hover { box-shadow: 0 30px 60px -20px rgba(218,41,28,0.55), 0 0 0 1px rgba(251,225,34,0.4); }
+  .player-card .sheen {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(251,225,34,0.18) 45%, transparent 60%);
+    background-size: 250% 250%;
+    background-position: 120% 120%;
+    transition: background-position .5s ease;
+    mix-blend-mode: screen;
+  }
+  .player-card:hover .sheen { background-position: -20% -20%; }
+  .player-card .reveal-panel {
+    position: absolute; inset-inline: 0; bottom: 0; padding: 1rem 1.1rem 1.2rem;
+    transform: translateY(72%);
+    transition: transform .35s cubic-bezier(.2,.8,.2,1);
+    background: linear-gradient(0deg, rgba(0,0,0,0.96) 40%, rgba(0,0,0,0.55) 80%, transparent 100%);
+  }
+  .player-card:hover .reveal-panel { transform: translateY(0%); }
+  .jersey-num {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    color: rgba(251,225,34,0.12);
+    line-height: 0.8;
+  }
+  .player-photo-wrap {
+    position: relative;
+    height: 62%;
+    overflow: hidden;
+  }
+  .player-photo-wrap img {
+    width: 100%; height: 100%; object-fit: cover; object-position: top center;
+    filter: saturate(1.05) contrast(1.05);
+    transition: transform .4s ease;
+  }
+  .player-card:hover .player-photo-wrap img { transform: scale(1.06); }
+  .player-photo-wrap::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.9) 100%),
+                linear-gradient(160deg, rgba(218,41,28,0.25), rgba(0,0,0,0.1));
+  }
+  .photo-fallback {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+  }
+
+  /* ---------- Ticket stub petition card ---------- */
+  .ticket {
+    position: relative;
+    background: linear-gradient(180deg, #161616, #0a0a0a);
+    border: 1px solid rgba(251,225,34,0.3);
+    border-radius: 1.25rem;
+  }
+  .ticket::before, .ticket::after {
+    content: "";
+    position: absolute;
+    width: 34px; height: 34px;
+    background: var(--mu-black);
+    border-radius: 50%;
+    top: 50%; transform: translateY(-50%);
+    box-shadow: inset 0 0 0 2px rgba(251,225,34,0.3);
+  }
+  .ticket::before { left: -17px; }
+  .ticket::after { right: -17px; }
+  .perforation {
+    border-left: 2px dashed rgba(251,225,34,0.35);
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn-pledge {
+    position: relative;
+    background: linear-gradient(135deg, var(--mu-red), var(--mu-red-dark));
+    box-shadow: 0 0 0 2px rgba(251,225,34,0.5), 0 18px 40px -12px rgba(218,41,28,0.7);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .btn-pledge:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 0 3px var(--mu-gold), 0 24px 50px -10px rgba(218,41,28,0.85); }
+  .btn-pledge:active { transform: translateY(0px) scale(0.98); }
+
+  @keyframes shimmerSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(220%); } }
+  .btn-pledge .shimmer { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+  .btn-pledge .shimmer::after {
+    content: ""; position: absolute; top: 0; left: 0; height: 100%; width: 35%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: shimmerSweep 2.8s ease-in-out infinite;
+  }
+
+  /* ---------- LED scoreboard counter ---------- */
+  .scoreboard {
+    background: #000;
+    border: 2px solid rgba(251,225,34,0.4);
+    box-shadow: inset 0 0 20px rgba(251,225,34,0.08), 0 0 30px rgba(218,41,28,0.15);
+  }
+  .digit { color: var(--mu-gold); text-shadow: 0 0 10px rgba(251,225,34,0.65); }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop { backdrop-filter: blur(6px); background: rgba(0,0,0,0.75); }
+  .modal-card {
+    background: radial-gradient(ellipse at top, #1a1a1a, #050505);
+    border: 1px solid rgba(251,225,34,0.4);
+  }
+  .welcome-screen { backdrop-filter: blur(8px); background: rgba(0,0,0,0.82); }
+  .welcome-card {
+    background: radial-gradient(ellipse at top, #1a1a1a, #050505);
+    border: 1px solid rgba(251,225,34,0.35);
+  }
+  .stat-pill {
+    border: 1px solid rgba(251,225,34,0.25);
+    background: rgba(255,255,255,0.05);
+    border-radius: 999px;
+    padding: 0.55rem 0.9rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--mu-gold);
+  }
+  .legend-card {
+    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(0,0,0,0.55));
+    border: 1px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    border-radius: 1.1rem;
+  }
+  .legend-image {
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  }
+  .trophy-slide { min-width: 100%; }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.7) translateY(30px); }
+    70% { transform: scale(1.03) translateY(-4px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .pop-in { animation: popIn .55s cubic-bezier(.2,.9,.25,1) forwards; }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: var(--mu-red); border-radius: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .neon-text, .float-slow, .float-slower, .shimmer::after { animation: none !important; }
+    .reveal, .reveal-left, .reveal-right { transition: none !important; opacity: 1 !important; transform: none !important; }
+  }
+</style>
+</head>
+
+<body class="antialiased">
+
+<!-- ============ NAV ============ -->
+<nav class="fixed top-0 inset-x-0 z-40 backdrop-blur-md bg-black/60 border-b border-white/10">
+  <div class="max-w-6xl mx-auto flex items-center justify-between px-5 py-3">
+    <div class="flex items-center gap-3">
+      <div class="crest scale-[0.45] -my-6"><img src="https://en.wikipedia.org/wiki/Special:FilePath/Manchester_United_FC_crest.svg" alt="Manchester United FC crest" /></div>
+      <span class="font-display text-xl tracking-widest text-[var(--mu-white)]">RED&nbsp;DEVILS <span class="text-[var(--mu-gold)]">MANIFESTO</span></span>
+    </div>
+    <a href="#petition" class="hidden sm:inline-block text-sm font-semibold px-4 py-2 rounded-full border border-[var(--mu-gold)] text-[var(--mu-gold)] hover:bg-[var(--mu-gold)] hover:text-black transition">Sign Now</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="relative min-h-screen flex flex-col items-center justify-center floodlight-bg px-6 pt-24 pb-16 text-center overflow-hidden">
+  <div class="stadium-lines"></div>
+
+  <!-- Ambient floating badges -->
+  <div class="hidden md:block absolute top-28 left-10 float-slow opacity-80 select-none text-6xl">⚽</div>
+  <div class="hidden md:block absolute bottom-24 right-14 float-slower opacity-70 select-none text-6xl">🔴</div>
+  <div class="hidden md:block absolute top-1/2 right-24 float-slow opacity-60 select-none text-5xl">👹</div>
+
+  <div class="crest mb-6 animate__animated animate__zoomIn" style="width:120px;height:140px;">
+    <img src="https://en.wikipedia.org/wiki/Special:FilePath/Manchester_United_FC_crest.svg" alt="Manchester United FC crest" />
+  </div>
+
+  <p class="font-display tracking-[0.4em] text-[var(--mu-gold)] text-sm md:text-base mb-4 animate__animated animate__fadeInDown">EST. 1878 &nbsp;•&nbsp; OLD TRAFFORD &nbsp;•&nbsp; THEATRE OF DREAMS</p>
+
+  <h1 class="font-display neon-text text-[var(--mu-red)] text-5xl sm:text-6xl md:text-8xl leading-[0.95] max-w-4xl">
+    THE GREAT MANCHESTER UNITED<br class="hidden sm:block"> MANIFESTO FOR <span class="text-[var(--mu-gold)]">KAYIMA</span>
+  </h1>
+
+  <p class="mt-8 font-display text-2xl sm:text-3xl md:text-4xl text-white/90 animate__animated animate__fadeInUp animate__delay-1s">
+    Kayima, switch your heartbeat to <span class="text-[var(--mu-red)]">Glory,</span> <span class="text-[var(--mu-gold)]">Glory,</span> Man United!
+  </p>
+
+  <a href="#why" class="mt-14 inline-flex flex-col items-center gap-2 text-white/60 hover:text-white transition animate__animated animate__fadeIn animate__delay-2s">
+    <span class="text-xs tracking-[0.3em] uppercase">Kick off the story</span>
+    <span class="animate-bounce text-2xl">⌄</span>
+  </a>
+</header>
+
+<!-- ============ THE WHY ============ -->
+<section id="why" class="relative py-28 px-6 bg-[var(--mu-charcoal)]">
+  <div class="max-w-5xl mx-auto">
+
+    <div class="reveal text-center mb-16">
+      <span class="font-display tracking-[0.35em] text-[var(--mu-red)] text-sm">A LETTER, OF SORTS</span>
+      <h2 class="font-display text-4xl sm:text-5xl mt-2">Why It Has To Be United</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-10 items-center mb-16">
+      <div class="reveal-left">
+        <h3 class="font-display text-3xl text-[var(--mu-gold)] mb-4">The World Cup Was Magic</h3>
+        <p class="text-white/75 leading-relaxed">
+          Kayima, watching the World Cup with you was pure joy — the flags, the anthems, the whole world holding its breath for a month. Nations became stories, and strangers became family in front of a screen. That kind of magic is real, and it's rare.
+        </p>
+      </div>
+      <div class="reveal-right order-first md:order-last">
+        <div class="rounded-2xl overflow-hidden border border-white/10 aspect-video bg-[var(--pitch)] flex items-center justify-center">
+          <span class="text-7xl">🌍⚽</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-10 items-center">
+      <div class="reveal-left order-2 md:order-1">
+        <div class="rounded-2xl overflow-hidden border border-[var(--mu-red)]/40 aspect-video bg-gradient-to-br from-[var(--mu-red)]/20 to-black flex items-center justify-center">
+          <span class="text-7xl">🏟️❤️</span>
+        </div>
+      </div>
+      <div class="reveal-right order-1 md:order-2">
+        <h3 class="font-display text-3xl text-[var(--mu-red)] mb-4">But This Is Forever</h3>
+        <p class="text-white/75 leading-relaxed">
+          A World Cup lasts a month, once every four years. Old Trafford happens <span class="text-[var(--mu-gold)] font-semibold">every single week</span> — the songs before kickoff, the nervous last five minutes, the reunions with 74,000 strangers who feel like home. That's not a tournament. That's a relationship. And Kayima, we'd love for you to be part of ours.
+        </p>
+      </div>
+    </div>
+
+    <div class="reveal mt-20 text-center">
+      <p class="font-display text-2xl sm:text-3xl text-white/90 max-w-3xl mx-auto leading-snug">
+        "The World Cup gave you a summer to remember. <span class="text-[var(--mu-gold)]">United will give you a lifetime of Saturdays.</span>"
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLAYER GALLERY ============ -->
+<section id="players" class="relative py-28 px-6 bg-black">
+  <div class="max-w-6xl mx-auto">
+    <div class="reveal text-center mb-16">
+      <span class="font-display tracking-[0.35em] text-[var(--mu-gold)] text-sm">MEET YOUR NEW FAMILY</span>
+      <h2 class="font-display text-4xl sm:text-5xl mt-2">The Squad Waiting For You</h2>
+      <p class="text-white/60 mt-3">Hover a card, Kayima. Every one of them has a reason you'll fall for this club.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-7 card-stage" id="player-grid">
+      <!-- Cards injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ============ PETITION ============ -->
+<section id="petition" class="relative py-28 px-6 floodlight-bg overflow-hidden">
+  <div class="stadium-lines"></div>
+  <div class="max-w-3xl mx-auto relative">
+
+    <div class="reveal text-center mb-14">
+      <span class="font-display tracking-[0.35em] text-[var(--mu-red)] text-sm">MATCHDAY IS CALLING</span>
+      <h2 class="font-display text-4xl sm:text-5xl mt-2">Sign The Petition, Kayima</h2>
+    </div>
+
+    <div class="ticket reveal p-8 sm:p-10 grid sm:grid-cols-[1fr_auto] gap-8 items-center">
+      <div>
+        <p class="font-display tracking-widest text-[var(--mu-gold)] text-xs mb-1">ADMIT ONE — SEASON TICKET</p>
+        <h3 class="font-display text-2xl mb-3">Old Trafford, Every Home Game</h3>
+        <p class="text-white/70 text-sm mb-6">Fill in your name below and pledge your allegiance. No going back after this one — in the best way.</p>
+
+        <form id="petition-form" class="space-y-4">
+          <div>
+            <label for="fan-name" class="block text-xs uppercase tracking-widest text-white/50 mb-1">Your name</label>
+            <input id="fan-name" type="text" required placeholder="Kayima"
+              class="w-full bg-black/60 border border-white/15 focus:border-[var(--mu-gold)] outline-none rounded-lg px-4 py-3 text-white placeholder-white/30 transition" />
+          </div>
+          <div>
+            <label for="fan-reason" class="block text-xs uppercase tracking-widest text-white/50 mb-1">Why you're joining (optional)</label>
+            <input id="fan-reason" type="text" placeholder="Because Glory Glory Man United, obviously"
+              class="w-full bg-black/60 border border-white/15 focus:border-[var(--mu-gold)] outline-none rounded-lg px-4 py-3 text-white placeholder-white/30 transition" />
+          </div>
+
+          <button type="submit" class="btn-pledge w-full font-display text-2xl sm:text-3xl tracking-wide text-white rounded-xl py-5 mt-2">
+            <span class="shimmer"></span>
+            ✊❤️ Pledge My Allegiance to Man United
+          </button>
+        </form>
+      </div>
+
+      <div class="perforation pl-8 flex flex-col items-center justify-center text-center gap-2">
+        <span class="text-4xl">🎟️</span>
+        <span class="font-display text-[var(--mu-red)] text-xl">MUFC</span>
+        <span class="text-[10px] tracking-widest text-white/40">VALID<br>FOREVER</span>
+      </div>
+    </div>
+
+    <!-- Live counter -->
+    <div class="reveal mt-12 flex flex-col items-center gap-3">
+      <span class="text-xs uppercase tracking-[0.3em] text-white/50">Fans who've already signed</span>
+      <div class="scoreboard rounded-xl px-8 py-4">
+        <span id="signee-count" class="font-led digit text-4xl sm:text-5xl tracking-widest">1,248</span>
+      </div>
+      <span class="text-white/40 text-sm">have signed this petition</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="py-10 px-6 bg-black border-t border-white/10 text-center">
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <span class="text-xl">👹</span>
+    <span class="font-display tracking-widest text-white/70">GLORY GLORY MAN UNITED</span>
+  </div>
+  <p class="text-white/30 text-xs">Made with love (and a lot of confetti) for Kayima. Come on you Reds.</p>
+  <p class="text-white/20 text-[11px] mt-2">Player photos via Wikimedia Commons (CC BY‑SA), current 2025–26 first-team squad. Club crest © Manchester United F.C., used for identification.</p>
+</footer>
+
+<!-- ============ WELCOME EXPERIENCE ============ -->
+<div id="welcome-screen" class="fixed inset-0 z-50 hidden items-start justify-center welcome-screen px-4 py-6 overflow-y-auto">
+  <div class="welcome-card pop-in rounded-3xl max-w-6xl w-full p-6 md:p-8 lg:p-10 relative">
+    <button id="welcome-close" aria-label="Close" class="absolute top-3 right-4 text-white/40 hover:text-white text-2xl leading-none">&times;</button>
+
+    <div class="text-center mb-8">
+      <p class="font-display tracking-[0.35em] text-[var(--mu-gold)] text-sm">WELCOME TO OLD TRAFFORD</p>
+      <h3 class="font-display text-4xl sm:text-5xl text-[var(--mu-red)] mt-2">Welcome to the Theatre of Dreams, <span id="welcome-name">Kayima</span>!</h3>
+      <p class="text-white/75 mt-3 max-w-3xl mx-auto">You are now part of Manchester United's story — built on trophies, legends, and unforgettable nights under the lights.</p>
+    </div>
+
+    <div class="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 mb-8">
+      <div class="rounded-2xl border border-[var(--mu-gold)]/30 bg-gradient-to-br from-black via-[var(--mu-charcoal)] to-black p-6">
+        <p class="text-xs uppercase tracking-[0.35em] text-white/60">Club pulse</p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <span class="stat-pill">20 League Titles</span>
+          <span class="stat-pill">3 European Cups</span>
+          <span class="stat-pill">12 FA Cups</span>
+        </div>
+        <p class="text-white/75 mt-4">From the Stretford End to the world stage, this club has earned its place among football's greatest.</p>
+      </div>
+      <div class="rounded-2xl border border-[var(--mu-red)]/30 bg-gradient-to-br from-red-900/30 via-black to-black p-6">
+        <p class="text-xs uppercase tracking-[0.35em] text-white/60">Tonight's mood</p>
+        <div class="text-5xl mt-4">⚽🔥❤️</div>
+        <p class="font-display text-2xl mt-3">Glory, glory, Man United</p>
+        <p class="text-white/70 mt-2">The stadium is waiting, and so are the memories.</p>
+      </div>
+    </div>
+
+    <section class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="font-display text-3xl text-[var(--mu-gold)]">Major Trophies</h4>
+        <div class="flex gap-2">
+          <button id="trophy-prev" class="rounded-full border border-white/15 px-3 py-2 text-sm hover:bg-white/10 transition" aria-label="Previous trophy">←</button>
+          <button id="trophy-next" class="rounded-full border border-white/15 px-3 py-2 text-sm hover:bg-white/10 transition" aria-label="Next trophy">→</button>
+        </div>
+      </div>
+      <div class="overflow-hidden rounded-2xl border border-white/10">
+        <div id="trophy-track" class="flex transition-transform duration-500 ease-in-out"></div>
+      </div>
+      <div id="trophy-dots" class="flex justify-center gap-2 mt-4"></div>
+    </section>
+
+    <section>
+      <h4 class="font-display text-3xl text-[var(--mu-red)] mb-4">Club Legends</h4>
+      <div id="legend-grid" class="grid md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+    </section>
+
+    <div class="text-center mt-8">
+      <button id="welcome-ok" class="btn-pledge px-8 py-3 rounded-full font-display text-xl tracking-wide">
+        <span class="shimmer"></span>
+        Step Into the Theatre of Dreams
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PLAYER DATA — current (2025–26) Manchester United first-team
+   squad members only. Photos are hotlinked from Wikimedia Commons
+   via the stable Special:FilePath redirect (no hash-guessing),
+   each one freely licensed under CC BY-SA — credited in the footer.
+   ============================================================ */
+const PLAYERS = [
+  {
+    name: "Bruno Fernandes",
+    role: "Midfielder · The Captain",
+    number: 8,
+    reason: "Leads with his heart on his sleeve every single match — the exact energy you bring to game night.",
+    grad: "from-yellow-600 via-red-800 to-black",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Bruno_Fernandes_Portugal%2C_2018.jpg"
+  },
+  {
+    name: "Bryan Mbeumo",
+    role: "Winger · The Finisher",
+    number: 19,
+    reason: "Arrived in 2025 and started scoring immediately — proof this club always finds its next hero.",
+    grad: "from-red-600 via-neutral-900 to-black",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Bryan_Mbeumo.jpg"
+  },
+  {
+    name: "Amad Diallo",
+    role: "Winger · The Flair",
+    number: 16,
+    reason: "Turns nothing into everything with one touch — pure joy on the ball, just like you at karaoke night.",
+    grad: "from-red-700 via-red-900 to-black"
+  },
+  {
+    name: "Kobbie Mainoo",
+    role: "Midfielder · The Prodigy",
+    number: 37,
+    reason: "Homegrown, humble, and ridiculously talented — proof this club builds its own stars from scratch.",
+    grad: "from-neutral-700 via-red-900 to-black",
+    photo: "https://commons.wikimedia.org/wiki/Special:FilePath/Kobbie_Mainoo_England_v_Ghana_23_June_2026-042.jpg"
+  }
+];
+// Amad Diallo's Commons action shot (set separately to keep the URL readable above)
+PLAYERS[2].photo = "https://commons.wikimedia.org/wiki/Special:FilePath/MU_VS_GMLIT_2024_%28cropped%29.jpg";
+
+const grid = document.getElementById('player-grid');
+PLAYERS.forEach((p, i) => {
+  const card = document.createElement('div');
+  card.className = `player-card ${p.grad} bg-gradient-to-br h-80 animate__animated animate__fadeInUp`;
+  card.style.animationDelay = `${i * 0.12}s`;
+  card.innerHTML = `
+    <div class="sheen"></div>
+    <div class="player-photo-wrap">
+      <img src="${p.photo}" alt="${p.name}" loading="lazy"
+           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'photo-fallback',innerHTML:'👕'}))" />
+    </div>
+    <div class="jersey-num absolute top-1 -right-2 text-[6rem] z-0">${p.number}</div>
+    <div class="relative z-10 px-5 pt-3 pb-2 flex flex-col">
+      <span class="text-xs tracking-widest text-white/60 uppercase">${p.role}</span>
+      <span class="font-display text-2xl text-white mt-1">${p.name}</span>
+    </div>
+    <div class="reveal-panel">
+      <p class="text-sm text-white/85 leading-snug">${p.reason}</p>
+    </div>
+  `;
+
+  // 3D tilt on mouse move (desktop)
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateY(-6px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = `rotateY(0deg) rotateX(0deg) translateY(0)`;
+  });
+
+  grid.appendChild(card);
+});
+
+/* ============================================================
+   SCROLL REVEAL — IntersectionObserver
+   ============================================================ */
+const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in-view');
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15 });
+revealEls.forEach(el => io.observe(el));
+
+/* ============================================================
+   LIVE SIGNEE COUNTER
+   ============================================================ */
+let signeeCount = 1248;
+const counterEl = document.getElementById('signee-count');
+
+function bumpCounter() {
+  signeeCount += 1;
+  counterEl.textContent = signeeCount.toLocaleString();
+  counterEl.classList.remove('animate__animated', 'animate__pulse');
+  void counterEl.offsetWidth; // restart animation
+  counterEl.classList.add('animate__animated', 'animate__pulse');
+}
+
+/* ============================================================
+   PETITION SUBMIT — confetti + welcome experience
+   ============================================================ */
+const form = document.getElementById('petition-form');
+const welcomeScreen = document.getElementById('welcome-screen');
+const welcomeName = document.getElementById('welcome-name');
+const welcomeClose = document.getElementById('welcome-close');
+const welcomeOk = document.getElementById('welcome-ok');
+const trophyTrack = document.getElementById('trophy-track');
+const trophyDots = document.getElementById('trophy-dots');
+const trophyPrev = document.getElementById('trophy-prev');
+const trophyNext = document.getElementById('trophy-next');
+const legendGrid = document.getElementById('legend-grid');
+
+const trophies = [
+  {
+    title: 'Premier League',
+    tag: 'England’s top prize',
+    era: '20 titles',
+    icon: '🏆',
+    blurb: 'The heartbeat of United glory, lifted again and again on the biggest stage in English football.',
+    gradient: 'from-yellow-600 via-red-800 to-black'
+  },
+  {
+    title: 'UEFA Champions League',
+    tag: 'Europe’s elite',
+    era: '3 European Cups',
+    icon: '🥇',
+    blurb: 'The nights in Europe that made Old Trafford feel like the centre of football itself.',
+    gradient: 'from-slate-700 via-blue-800 to-black'
+  },
+  {
+    title: 'FA Cup',
+    tag: 'The famous trophy',
+    era: '12 triumphs',
+    icon: '🎖️',
+    blurb: 'A symbol of resilience, romance, and those unforgettable cup final moments.',
+    gradient: 'from-red-700 via-amber-700 to-black'
+  },
+  {
+    title: 'League Cup',
+    tag: 'Domestic silverware',
+    era: '6 titles',
+    icon: '🏟️',
+    blurb: 'Proof that United have always found a way to win when the pressure is at its highest.',
+    gradient: 'from-neutral-700 via-red-900 to-black'
+  }
+];
+
+const legends = [
+  {
+    name: 'Ryan Giggs',
+    role: 'Winger / Captain',
+    number: '11',
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Ryan_Giggs.jpg',
+    bio: 'The club’s most decorated player, known for pace, dribbling, and a career spent in the red shirt.',
+    achievements: ['13 Premier League titles', '2 UEFA Champions Leagues', 'Over 963 appearances']
+  },
+  {
+    name: 'Paul Scholes',
+    role: 'Midfielder',
+    number: '18',
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Paul_Scholes.jpg',
+    bio: 'A midfield maestro whose passing, vision, and game intelligence helped define United’s era.',
+    achievements: ['11 Premier League titles', '3 Champions Leagues', 'One of the club’s greatest playmakers']
+  },
+  {
+    name: 'Cristiano Ronaldo',
+    role: 'Forward',
+    number: '7',
+    photo: 'https://placehold.co/800x600/111111/FFFFFF?text=Cristiano+Ronaldo',
+    bio: 'One of the game’s greatest attackers, delivering goals, glory, and unforgettable moments in red.',
+    achievements: ['3 Premier League titles', '1 Champions League with United', 'Multiple Ballon d’Or wins']
+  },
+  {
+    name: 'Wayne Rooney',
+    role: 'Forward',
+    number: '10',
+    photo: 'https://placehold.co/800x600/111111/DA291C?text=Wayne+Rooney',
+    bio: 'United’s talismanic goalscorer, loved for his energy, leadership, and relentless drive.',
+    achievements: ['5 Premier League titles', '1 Champions League', 'Club record goalscorer']
+  },
+  {
+    name: 'Eric Cantona',
+    role: 'Forward',
+    number: '7',
+    photo: 'https://upload.wikimedia.org/wikipedia/commons/e/ee/Cantona,_Eric.jpg',
+    bio: 'The icon who gave United a new swagger and turned matches into theatre.',
+    achievements: ['4 Premier League titles', '2 League Cups', 'Immortal status in the club’s folklore']
+  },
+  {
+    name: 'David Beckham',
+    role: 'Midfielder',
+    number: '23',
+    photo: 'https://placehold.co/800x600/111111/FFFFFF?text=David+Beckham',
+    bio: 'A global star whose quality, technique, and charisma helped lift United to new heights.',
+    achievements: ['6 Premier League titles', '2 FA Cups', 'One of the most famous names in football']
+  }
+];
+
+let currentTrophy = 0;
+let trophyTimer;
+
+function fireConfetti() {
+  if (typeof confetti !== 'function') return;
+
+  const colors = ['#DA291C', '#FBE122', '#FFFFFF'];
+  const duration = 1500;
+  const end = Date.now() + duration;
+
+  (function frame() {
+    confetti({ particleCount: 6, angle: 60, spread: 65, origin: { x: 0 }, colors });
+    confetti({ particleCount: 6, angle: 120, spread: 65, origin: { x: 1 }, colors });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+
+  confetti({ particleCount: 160, spread: 100, origin: { y: 0.6 }, colors, startVelocity: 45 });
+}
+
+function renderTrophies() {
+  trophyTrack.innerHTML = trophies.map((trophy) => `
+    <article class="trophy-slide min-h-[280px] p-8 md:p-10 bg-gradient-to-br ${trophy.gradient}">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.35em] text-white/70">${trophy.tag}</p>
+          <h5 class="font-display text-3xl mt-2">${trophy.title}</h5>
+        </div>
+        <div class="text-5xl">${trophy.icon}</div>
+      </div>
+      <p class="mt-6 text-lg text-white/85 max-w-2xl">${trophy.blurb}</p>
+      <div class="mt-6 inline-flex rounded-full border border-white/20 bg-black/20 px-4 py-2 text-sm">${trophy.era}</div>
+    </article>
+  `).join('');
+
+  trophyDots.innerHTML = trophies.map((_, index) => `
+    <button class="h-2.5 w-2.5 rounded-full ${index === currentTrophy ? 'bg-[var(--mu-gold)]' : 'bg-white/30'}" data-index="${index}" aria-label="Show trophy ${index + 1}"></button>
+  `).join('');
+
+  trophyDots.querySelectorAll('button').forEach((button) => {
+    button.addEventListener('click', () => {
+      showTrophy(Number(button.dataset.index));
+      startTrophyAutoPlay();
+    });
+  });
+}
+
+function showTrophy(index) {
+  currentTrophy = (index + trophies.length) % trophies.length;
+  trophyTrack.style.transform = `translateX(-${currentTrophy * 100}%)`;
+  trophyDots.querySelectorAll('button').forEach((button, buttonIndex) => {
+    button.className = `h-2.5 w-2.5 rounded-full ${buttonIndex === currentTrophy ? 'bg-[var(--mu-gold)]' : 'bg-white/30'}`;
+    button.setAttribute('aria-pressed', String(buttonIndex === currentTrophy));
+  });
+}
+
+function startTrophyAutoPlay() {
+  clearInterval(trophyTimer);
+  trophyTimer = setInterval(() => showTrophy(currentTrophy + 1), 5000);
+}
+
+function renderLegends() {
+  legendGrid.innerHTML = legends.map((legend) => `
+    <article class="legend-card">
+      <img src="${legend.photo}" alt="${legend.name}" class="legend-image" loading="lazy"
+           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'legend-image flex items-center justify-center text-6xl bg-black/60',innerHTML:'👹'}))" />
+      <div class="p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.25em] text-[var(--mu-gold)]">${legend.role}</p>
+            <h5 class="font-display text-2xl mt-1">${legend.name}</h5>
+          </div>
+          <span class="rounded-full border border-[var(--mu-gold)]/30 px-3 py-1 text-sm text-[var(--mu-gold)]">#${legend.number}</span>
+        </div>
+        <p class="text-sm text-white/70 mt-3">${legend.bio}</p>
+        <p class="mt-4 text-xs uppercase tracking-[0.25em] text-white/45">Achievements</p>
+        <ul class="mt-2 space-y-1 text-sm text-white/75">
+          ${legend.achievements.map((item) => `<li>• ${item}</li>`).join('')}
+        </ul>
+      </div>
+    </article>
+  `).join('');
+}
+
+function openWelcomeScreen(name) {
+  welcomeName.textContent = name || 'Kayima';
+  welcomeScreen.classList.remove('hidden');
+  welcomeScreen.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWelcomeScreen() {
+  welcomeScreen.classList.add('hidden');
+  welcomeScreen.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('fan-name').value.trim() || 'Kayima';
+  bumpCounter();
+  fireConfetti();
+  openWelcomeScreen(name);
+  form.reset();
+});
+
+welcomeClose.addEventListener('click', closeWelcomeScreen);
+welcomeOk.addEventListener('click', closeWelcomeScreen);
+welcomeScreen.addEventListener('click', (e) => { if (e.target === welcomeScreen) closeWelcomeScreen(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWelcomeScreen(); });
+trophyPrev.addEventListener('click', () => { showTrophy(currentTrophy - 1); startTrophyAutoPlay(); });
+trophyNext.addEventListener('click', () => { showTrophy(currentTrophy + 1); startTrophyAutoPlay(); });
+
+renderTrophies();
+renderLegends();
+showTrophy(0);
+startTrophyAutoPlay();
+</script>
+</body>
+</html>
